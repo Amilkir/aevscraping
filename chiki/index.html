@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador de Personas Desaparecidas — Red de Emergencia Venezuela</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for beautiful icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="glow-bg"></div>
+    
+    <header class="app-header">
+        <div class="container header-content">
+            <div class="logo-area">
+                <div class="flag-icon">
+                    <span class="yellow"></span>
+                    <span class="blue"></span>
+                    <span class="red"></span>
+                </div>
+                <div class="logo-text">
+                    <h1>Red de Emergencia</h1>
+                    <p>Plataforma de búsqueda y consulta de personas desaparecidas</p>
+                </div>
+            </div>
+            
+            <div class="stats-container">
+                <div class="stat-card" id="stat-missing">
+                    <div class="stat-icon"><i class="fa-solid fa-search"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value">—</span>
+                        <span class="stat-label">Desaparecidos</span>
+                    </div>
+                </div>
+                <div class="stat-card" id="stat-found">
+                    <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value">—</span>
+                        <span class="stat-label">Localizados</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container main-content">
+        <section class="control-panel">
+            <div class="search-bar-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="search-input" placeholder="Escribe un nombre o apellido para buscar..." autocomplete="off">
+                <button id="clear-search" class="clear-btn" style="display: none;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="status-filter">Estado</label>
+                    <select id="status-filter">
+                        <option value="active">Desaparecido (Activo)</option>
+                        <option value="found">Localizado a salvo</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group checkbox-group">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="child-filter">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="checkbox-label">Solo menores de edad</span>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="export-csv-btn" class="btn btn-secondary">
+                        <i class="fa-solid fa-file-csv"></i> Exportar vista actual
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="results-section">
+            <div class="results-meta">
+                <h2 class="section-title"><span id="results-count">Cargando...</span> registros encontrados</h2>
+                <div class="sync-indicator">
+                    <i class="fa-solid fa-rotate-left"></i> Datos actualizados en tiempo real
+                </div>
+            </div>
+
+            <!-- Loader -->
+            <div id="loader" class="loader-container">
+                <div class="spinner"></div>
+                <p>Consultando la base de datos de emergencia...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-container" style="display: none;">
+                <div class="empty-icon"><i class="fa-solid fa-users-slash"></i></div>
+                <h3>No se encontraron resultados</h3>
+                <p>Prueba buscando con otro término, quitando filtros o verificando el estado seleccionado.</p>
+            </div>
+
+            <!-- Results Grid -->
+            <div id="results-grid" class="cards-grid"></div>
+
+            <!-- Pagination -->
+            <div id="pagination" class="pagination-container" style="display: none;">
+                <button id="prev-page" class="btn btn-pagination" disabled><i class="fa-solid fa-chevron-left"></i> Anterior</button>
+                <span id="page-indicator">Página 1</span>
+                <button id="next-page" class="btn btn-pagination">Siguiente <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <div class="container footer-content">
+            <p>Visualizador independiente alimentado por los datos públicos de la plataforma Red Ayuda Venezuela.</p>
+            <p class="disclaimer">Esta herramienta lee los reportes comunitarios y no reemplaza los canales de comunicación de las autoridades competentes.</p>
+        </div>
+    </footer>
+
+    <!-- JS Logic -->
+    <script src="index.js"></script>
+</body>
+</html>

@@ -7,9 +7,17 @@ import uuid
 import hashlib
 from datetime import datetime, timezone
 
-API_KEY = "AIzaSyDiAYBYfu33VPJavslmVByDFt5p0xV6U-I"
-SHEET_ID = "1CSrJaBeCSo_l_0eoXI7SocThHKlRDztRMJaic1Ts0Ww"
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+API_KEY  = os.getenv("GOOGLE_API_KEY")
+SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
 SHEET_TAB = "lista"
+
+if not API_KEY or not SHEET_ID:
+    print("Error: faltan GOOGLE_API_KEY o GOOGLE_SHEET_ID en el .env", file=sys.stderr)
+    sys.exit(1)
 
 def map_id(val):
     if not val:

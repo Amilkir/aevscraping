@@ -132,6 +132,10 @@ def run(db, migrations, out_dir, sources, run_id, max_mb=5.0, scrape=False,
 
     # 3. ingesta  +  4. diff contra el maestro
     records = list(ingest(sources))
+    # Normalización previa al diff
+    from consolidator.lib.normalizar import split_multi_persona, dedup_por_nombre
+    records = split_multi_persona(records)
+    records = dedup_por_nombre(records)
     con = sqlite3.connect(str(db))
     res = diffmod.classify(records, diffmod.load_master_index(con))
     con.close()

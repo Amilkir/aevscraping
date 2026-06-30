@@ -11,8 +11,17 @@ Salida:   personas_desaparecidas_venezuela.json  (mismo directorio del script)
 
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
+
+from dotenv import load_dotenv
+load_dotenv()
+
+RECAPTCHA_KEY = os.getenv("RECAPTCHA_SITE_KEY", "")
+if not RECAPTCHA_KEY:
+    print("Error: falta RECAPTCHA_SITE_KEY en el .env", file=sys.stderr)
+    sys.exit(1)
 
 try:
     from playwright.async_api import async_playwright
@@ -30,7 +39,7 @@ OUTPUT_FILE = Path(__file__).parent / "personas_desaparecidas_venezuela.json"
 # en lugar de disparar una descarga, devuelve el array de datos directamente.
 JS_EXTRACTOR = """
 async () => {
-    const RECAPTCHA_KEY = "6LeBfDUtAAAAAMw1Wtkd58bst6vEnLOi3_NAjGD0";
+    const RECAPTCHA_KEY = "__RECAPTCHA_KEY__";
     const BASE_API = "https://desaparecidos-terremoto-api.theempire.tech/api";
 
     async function getRecaptchaToken(action) {
@@ -78,7 +87,7 @@ async () => {
 
     return allPeople;
 }
-"""
+""".replace("__RECAPTCHA_KEY__", RECAPTCHA_KEY)
 
 
 async def scrape():
@@ -105,7 +114,6 @@ async def scrape():
                 timeout=60_000
             )
         except Exception as e:
-            # La página puede emitir timeout de networkidle pero igual haber cargado
             print(f"Advertencia al esperar networkidle: {e}", file=sys.stderr)
 
         print("Esperando que reCAPTCHA esté disponible...")

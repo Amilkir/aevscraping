@@ -11,6 +11,7 @@ Utilidades de normalización previas al diff:
 import re
 import unicodedata
 import hashlib
+from collections import defaultdict
 
 # Palabras que indican que el "y" NO separa dos personas sino una referencia
 PALABRAS_REFERENCIA = {
@@ -46,24 +47,15 @@ def _status_priority(estado):
     return 0
 
 
-def _es_nombre_propio(texto):
-    """Retorna True si el texto parece un nombre propio (no es palabra de referencia)."""
-    palabras = _normalizar_texto(texto).split()
-    # Si la primera palabra es una referencia, no es nombre propio
-    if not palabras:
-        return False
-    if palabras[0] in PALABRAS_REFERENCIA:
-        return False
-    # Si contiene solo stopwords tampoco
-    significativas = [p for p in palabras if p not in STOPWORDS and len(p) > 2]
-    return len(significativas) > 0
+def _tiene_emoji(texto):
+    """Retorna True si el texto contiene emojis."""
+    return any(unicodedata.category(c) in ('So', 'Cs') for c in texto)
 
 
 def _generar_id_derivado(id_original, sufijo):
     """Genera un id numérico estable para los registros splitteados."""
     base = f"{id_original}_{sufijo}"
     h = hashlib.md5(base.encode()).hexdigest()
-    # Convertir a entero de 64 bits con signo
     return int(h[:15], 16)
 
 
@@ -85,6 +77,10 @@ def _split_nombre(nombre):
         if palabras and palabras[0] in PALABRAS_REFERENCIA:
             return [nombre]
 
+    # Si alguna parte tiene emoji, no splitear
+    if any(_tiene_emoji(p) for p in partes):
+        return [nombre]
+
     # Buscar la última parte con más de 1 palabra (tiene apellido)
     parte_con_apellido = None
     for parte in reversed(partes):
@@ -98,6 +94,8 @@ def _split_nombre(nombre):
     # Extraer apellidos: todo menos la primera palabra
     palabras = parte_con_apellido.split()
     apellidos = ' '.join(palabras[1:])
+    apellidos_list = [_normalizar_texto(a) for a in apellidos.split()]
+    apellidos_norm = _normalizar_texto(apellidos)
 
     # Construir nombres completos heredando apellido donde falte
     nombres_finales = []
@@ -108,8 +106,22 @@ def _split_nombre(nombre):
         else:
             nombres_finales.append(parte)
 
-    # Descartar partes con menos de 2 palabras
-    nombres_finales = [n for n in nombres_finales if len(n.split()) >= 2]
+    # Descartar partes con menos de 2 palabras, con emojis,
+    # o que sean solo apellidos (sin nombre de pila)
+    def _es_solo_apellidos(texto):
+        texto_norm = _normalizar_texto(texto)
+        palabras_norm = [_normalizar_texto(p) for p in texto.split()]
+        return (
+            texto_norm == apellidos_norm
+            or all(p in apellidos_list for p in palabras_norm)
+        )
+
+    nombres_finales = [
+        n for n in nombres_finales
+        if len(n.split()) >= 2
+        and not _tiene_emoji(n)
+        and not _es_solo_apellidos(n)
+    ]
 
     if len(nombres_finales) < 2:
         return [nombre]
@@ -129,7 +141,6 @@ def split_multi_persona(records):
     for rec in records:
         nombre = str(rec.get("nombre") or "")
 
-        # Solo procesar si tiene " y " o coma
         if " y " not in nombre.lower() and "," not in nombre:
             resultado.append(rec)
             continue
@@ -137,11 +148,9 @@ def split_multi_persona(records):
         nombres = _split_nombre(nombre)
 
         if len(nombres) == 1:
-            # No se pudo splitear con seguridad
             resultado.append(rec)
             continue
 
-        # Generar un registro por cada nombre
         for i, nom in enumerate(nombres):
             nuevo = dict(rec)
             nuevo["nombre"] = nom.strip()
@@ -153,7 +162,7 @@ def split_multi_persona(records):
             resultado.append(nuevo)
             spliteados += 1
 
-        spliteados -= 1  # descontar el original que se reemplazó
+        spliteados -= 1
 
     print(f"   split_multi_persona: {spliteados} registros nuevos generados")
     return resultado
@@ -172,8 +181,6 @@ def dedup_por_nombre(records):
     más de una vez, conserva la de mayor prioridad de estatus.
     En caso de igual prioridad, conserva la más reciente por fecha_actualizacion.
     """
-    from collections import defaultdict
-
     grupos = defaultdict(list)
     for rec in records:
         key = _normalizar_nombre_key(str(rec.get("nombre") or ""))
@@ -187,16 +194,57 @@ def dedup_por_nombre(records):
             resultado.append(grupo[0])
             continue
 
-        # Ordenar: mayor prioridad primero, luego más reciente
-        grupo.sort(key=lambda r: (
-            -_status_priority(r.get("estado")),
-            str(r.get("fecha_actualizacion") or ""),
-        ), reverse=False)
-
-        # El primero tras ordenar es el que tiene mayor prioridad
         grupo.sort(key=lambda r: -_status_priority(r.get("estado")))
         resultado.append(grupo[0])
         duplicados += len(grupo) - 1
 
     print(f"   dedup_por_nombre: {duplicados} duplicados eliminados")
     return resultado
+
+def normalizar_telefono(telefono):
+    """
+    Extrae el primer número de teléfono válido del campo telefono_contacto.
+    Si no encuentra ninguno, retorna None.
+    Formatos aceptados: +58XXXXXXXXXX, 04XXXXXXXXX, números internacionales.
+    """
+    if not telefono:
+        return None
+
+    texto = str(telefono)
+
+    # Buscar número con prefijo internacional (+XX...), acepta paréntesis también
+    match = re.search(r'\+\d[\d\s\-\(\)]{7,17}', texto)
+    if match:
+        numero = re.sub(r'[\s\-\(\)]', '', match.group())
+        if 8 <= len(numero) <= 16:
+            return numero
+
+    # Buscar número local venezolano (04XX o 02XX)
+    match = re.search(r'0[24]\d{9,11}', texto)
+    if match:
+        return match.group()
+
+    # Buscar secuencia larga de dígitos (sin prefijo)
+    match = re.search(r'\d{10,13}', texto)
+    if match:
+        return match.group()
+
+    return None
+
+
+def normalizar_telefonos(records):
+    """Normaliza el campo telefono_contacto en todos los registros."""
+    normalizados = 0
+    vaciados = 0
+
+    for rec in records:
+        original = rec.get("telefono_contacto")
+        nuevo = normalizar_telefono(original)
+        if original and not nuevo:
+            vaciados += 1
+        elif original != nuevo:
+            normalizados += 1
+        rec["telefono_contacto"] = nuevo
+
+    print(f"   normalizar_telefonos: {normalizados} normalizados, {vaciados} sin número válido → null")
+    return records

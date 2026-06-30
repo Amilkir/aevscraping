@@ -58,6 +58,7 @@ INGEST = [
     REPO / "chiki" / "pacientes_hospitalizados.json",
     REPO / "scrapers" / "sosvenezuela2026" / "sosvenezuela2026.json",
     REPO / "scrapers" / "venezuelareporta" / "venezuelareporta.json",
+    REPO / "scrapers" / "venezuelareporta_supabase" / "venezuelareporta_supabase.json",
 ]
 
 

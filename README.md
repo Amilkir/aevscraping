@@ -8,6 +8,19 @@ XLSX** a la API de `aquiestoyvenezuela.com`.
 No hay sistema de build ni manifiesto de dependencias: es un conjunto de scrapers
 independientes orquestados por `run_daily.py`.
 
+## Gobernanza del fork Open-Vzla-SOS
+
+Este repositorio es un **fork operativo mantenido por Open-Vzla-SOS**.
+
+- Repositorio original upstream: [`Amilkir/aevscraping`](https://github.com/Amilkir/aevscraping).
+- Función dentro del ecosistema: captura, scraping y consolidación inicial de información.
+- La rama `main` se reserva para sincronización con upstream.
+- La rama `develop` es la rama de integración de Open-Vzla-SOS.
+- Todo cambio propio debe realizarse en ramas `feature/*`, `fix/*`, `docs/*`, `test/*` o `chore/*`.
+- Los cambios propios deben llegar a `develop` mediante pull request.
+- No deben ejecutarse scrapers, notebooks o procesos que utilicen datos reales, llamen servicios externos, escriban en APIs o afecten ambientes de producción sin autorización explícita. Las pruebas locales y aisladas deberán utilizar datos ficticios o anonimizados.
+- Se identificaron riesgos heredados del upstream que deberán gestionarse mediante tareas separadas por los responsables correspondientes; su remediación queda fuera de este cambio.
+
 ---
 
 ## El esquema unificado es el contrato
